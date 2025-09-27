@@ -49,7 +49,7 @@ class RMMBase(BaseLearner):
             int(m * (1 - self._c_rate_list[self._cur_task])),
             int(m * (1 + self._c_rate_list[self._cur_task])),
         ]
-        logging.info(
+        print(
             "Constructing exemplars...({} or {} per classes)".format(ns[0], ns[1])
         )
 
@@ -87,7 +87,7 @@ class RMMBase(BaseLearner):
             else:
                 ms.append(ns[1])
 
-        logging.info(f"ms: {ms}")
+        print(f"ms: {ms}")
         for class_idx in range(self._known_classes, self._total_classes):
             data, targets, idx_dataset = data_manager.get_dataset(
                 np.arange(class_idx, class_idx + 1),
@@ -170,7 +170,7 @@ class RMM_FOSTER(RMMBase, FOSTER):
         )
         self._network.update_fc(self._total_classes)
         self._network_module_ptr = self._network
-        logging.info(
+        print(
             "Learning on {}-{}".format(self._known_classes, self._total_classes)
         )
 
@@ -180,8 +180,8 @@ class RMM_FOSTER(RMMBase, FOSTER):
             for p in self._network.oldfc.parameters():
                 p.requires_grad = False
 
-        logging.info("All params: {}".format(count_parameters(self._network)))
-        logging.info(
+        print("All params: {}".format(count_parameters(self._network)))
+        print(
             "Trainable params: {}".format(count_parameters(self._network, True))
         )
 

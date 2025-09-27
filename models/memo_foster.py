@@ -44,12 +44,12 @@ class MEMO_FOSTER(FOSTER):
         self._total_classes = self._known_classes + data_manager.get_task_size(self._cur_task)
         self._network.update_fc(self._total_classes)
         self._network_module_ptr = self._network
-        logging.info('Learning on {}-{}'.format(self._known_classes, self._total_classes))
+        print('Learning on {}-{}'.format(self._known_classes, self._total_classes))
 
         # MEMO: Freeze shallow layers ở nhánh convnet mới (chỉ áp dụng cho incremental tasks)
         #  - CIFAR: 'stage_2' (conv_1_3x3, bn_1, stage_1, stage_2)
         #  - ImageNet: 'layer2' (conv1, bn1, layer1, layer2)
-        if self._cur_task >= 1 and self.memo_freeze:
+        if self._cur_task >= 1 and self.memo_freeze and self.args['init_cls'] >= 50:
             try:
                 latest = self._network_module_ptr.convnets[-1]
                 if hasattr(latest, 'freeze_until'):
@@ -58,9 +58,9 @@ class MEMO_FOSTER(FOSTER):
                     try:
                         latest.set_bn_eval_until(self.memo_freeze_until)
                     except Exception as e2:
-                        logging.info(f"set_bn_eval_until skipped: {e2}")
+                        print(f"set_bn_eval_until skipped: {e2}")
             except Exception as e:
-                logging.info(f"freeze_until skipped: {e}")
+                print(f"freeze_until skipped: {e}")
 
         if self._cur_task > 0:
             # Khóa nhánh nền đầu tiên và oldfc (vai trò teacher trong FOSTER)
@@ -69,8 +69,8 @@ class MEMO_FOSTER(FOSTER):
             for p in self._network.oldfc.parameters():
                 p.requires_grad = False
 
-        logging.info('All params: {}'.format(count_parameters(self._network)))
-        logging.info('Trainable params: {}'.format(count_parameters(self._network, True)))
+        print('All params: {}'.format(count_parameters(self._network)))
+        print('Trainable params: {}'.format(count_parameters(self._network, True)))
 
         # Trộn dữ liệu task hiện tại với exemplar (rehearsal) để giảm quên
         train_dataset = data_manager.get_dataset(
@@ -138,7 +138,7 @@ class MEMO_FOSTER(FOSTER):
                 info = 'Task {}, Epoch {}/{} => Loss {:.3f}, Loss_clf {:.3f}, Loss_fe {:.3f}, Loss_kd {:.3f}, Train_accy {:.2f}'.format(
                     self._cur_task, epoch+1, self.args["boosting_epochs"], losses/len(train_loader), losses_clf/len(train_loader), losses_fe/len(train_loader), losses_kd/len(train_loader), train_acc)
             prog_bar.set_description(info)
-            logging.info(info)
+            print(info)
 
     def _feature_compression(self, train_loader, test_loader):
         # FOSTER Compression (teacher -> student):
@@ -195,7 +195,7 @@ class MEMO_FOSTER(FOSTER):
                 info = 'SNet: Task {}, Epoch {}/{} => Loss {:.3f},  Train_accy {:.2f}'.format(
                     self._cur_task, epoch+1, self.args["compression_epochs"], losses/len(train_loader),  train_acc)
             prog_bar.set_description(info)
-            logging.info(info)
+            print(info)
 
         if isinstance(self._snet, nn.DataParallel):
             self._snet = self._snet.module
@@ -203,7 +203,7 @@ class MEMO_FOSTER(FOSTER):
         if self.is_student_wa:
             self._snet.weight_align(self._known_classes, self._total_classes - self._known_classes, self.wa_value)
         else:
-            logging.info("do not weight align student!")
+            print("do not weight align student!")
         self._snet.eval()
         # Swap to student
         self._snet_module_ptr = self._snet
